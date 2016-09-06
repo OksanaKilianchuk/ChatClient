@@ -1,15 +1,11 @@
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.io.*;
+import java.net.*;
 import java.util.Date;
 import java.util.Scanner;
+import java.net.CookieHandler;
 
 class GetThread extends Thread {
     private int n;
@@ -21,6 +17,7 @@ class GetThread extends Thread {
 
     @Override
     public void run() {
+
         try {
             while (!isInterrupted()) {
                 URL url = new URL("http://localhost:8080/get?from=" + n);
@@ -45,6 +42,7 @@ class GetThread extends Thread {
                     }
                 }
             }
+
         } catch (Exception ex) {
             ex.printStackTrace();
             return;
@@ -52,12 +50,25 @@ class GetThread extends Thread {
     }
 }
 
+
 public class Main {
+    static protected CookieHandler cookieHandler;
+
+    static CookieManager cookieManager = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
 
     static Scanner scanner = new Scanner(System.in);
     static User user;
 
     public static void main(String[] args) {
+
+        cookieHandler = java.security.AccessController.doPrivileged(
+                new java.security.PrivilegedAction<CookieHandler>() {
+                    public CookieHandler run() {
+                        return CookieHandler.getDefault();
+                    }
+                });
+        cookieHandler.setDefault(cookieManager);
+
         while (true) {
             user = autorization();
 
@@ -117,7 +128,7 @@ public class Main {
 
     static void userLogOut() {
         try {
-            int res = user.send("http://localhost:8080/logOut");
+            int res = sendCommand("http://localhost:8080/logOut");
             if (res != 200) {
                 System.out.println("HTTP error: " + res);
                 return;
@@ -188,17 +199,18 @@ public class Main {
         }
     }
 
+    static int sendCommand(String url) throws IOException {
+        URL obj = new URL(url);
+        HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
+        conn.setRequestMethod("POST");
+        return conn.getResponseCode();
+    }
+
     static void userStatus() {
         System.out.println("Enter name of user:");
         String name = scanner.nextLine();
-        Message msg = new Message();
-        msg.setPrivate(true);
-        msg.setText(name);
-        msg.setFrom(user.getLogin());
-        msg.setTo(user.getLogin());
-        msg.setDate(new Date());
         try {
-            int res = msg.send("http://localhost:8080/status");
+            int res = sendCommand("http://localhost:8080/status?userName=" + name);
             if (res == 200) {
                 System.out.println("User " + name + " is online");
                 return;

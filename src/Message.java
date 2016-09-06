@@ -41,7 +41,7 @@ public class Message implements Serializable {
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
 
-        try(OutputStream os = conn.getOutputStream();) {
+        try (OutputStream os = conn.getOutputStream();) {
             String json = toJSON();
             os.write(json.getBytes());
 
